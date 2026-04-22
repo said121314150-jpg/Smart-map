@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Locator — Intelligent Place Search</title>
+    <meta name="description"
+        content="AI-powered local search assistant. Find the nearest restaurants, hospitals, ATMs, and more using natural language in English or Uzbek.">
+
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+    <!-- Shared site styles + page-specific -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="location.css">
+</head>
+
+<body>
+
+    <!-- ═══════════ NAVBAR ═══════════ -->
+    <header id="navbar">
+        <nav class="navbar section-content">
+            <a href="index.html" class="nav-logo">
+                <img src="logo.png" alt="Smart City Logo" class="logo-img">
+            </a>
+            <ul class="nav-menu" id="nav-menu">
+                <button id="menu-close-button" class="fas fa-times"></button>
+                <li class="nav-item"><a href="index.html#home" class="nav-link">Home</a></li>
+                <li class="nav-item"><a href="index.html#about" class="nav-link">About</a></li>
+                <li class="nav-item"><a href="index.html#benefits" class="nav-link">Benefits</a></li>
+                <li class="nav-item"><a href="index.html#smart-cities" class="nav-link">Smart Cities</a></li>
+                <li class="nav-item"><a href="index.html#contact" class="nav-link">Contact</a></li>
+                <li class="nav-item"><a href="location.html" class="nav-link nav-link--active">📍 Find Me</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" id="theme-toggle" title="Toggle Light/Dark Mode"
+                        style="font-size:1.1rem;"><i class="fas fa-sun"></i></a></li>
+            </ul>
+            <button id="menu-open-button" class="fas fa-bars"></button>
+        </nav>
+    </header>
+
+    <!-- ═══════════ APP SHELL ═══════════ -->
+    <div class="sl-app" id="sl-app">
+
+        <!-- ── MAP ── -->
+        <div class="sl-map-area" id="sl-map-area">
+            <div id="sl-map"></div>
+
+            <!-- Floating user-location button -->
+            <button class="sl-my-loc" id="sl-my-loc" title="Go to my location">
+                <i class="fas fa-location-arrow"></i>
+            </button>
+
+            <!-- ── DETAIL CARD (selected result) ── -->
+            <div class="sl-detail" id="sl-detail" hidden>
+                <button class="sl-detail-close" id="sl-detail-close"><i class="fas fa-xmark"></i></button>
+                <div class="sl-detail-head">
+                    <div class="sl-detail-icon" id="sl-detail-icon"><i class="fas fa-map-pin"></i></div>
+                    <div>
+                        <h3 class="sl-detail-name" id="sl-detail-name">Place Name</h3>
+                        <span class="sl-detail-type" id="sl-detail-type">Type</span>
+                    </div>
+                </div>
+                <div class="sl-detail-body">
+                    <div class="sl-detail-row" id="sl-detail-distance-row">
+                        <i class="fas fa-route"></i>
+                        <span id="sl-detail-distance">—</span>
+                    </div>
+                    <div class="sl-detail-row" id="sl-detail-address-row" hidden>
+                        <i class="fas fa-location-dot"></i>
+                        <span id="sl-detail-address">—</span>
+                    </div>
+                    <div class="sl-detail-row" id="sl-detail-phone-row" hidden>
+                        <i class="fas fa-phone"></i>
+                        <a id="sl-detail-phone" href="#">—</a>
+                    </div>
+                    <div class="sl-detail-row" id="sl-detail-hours-row" hidden>
+                        <i class="fas fa-clock"></i>
+                        <span id="sl-detail-hours">—</span>
+                    </div>
+                </div>
+                <div class="sl-detail-actions">
+                    <a class="sl-btn sl-btn--primary sl-btn--sm" id="sl-detail-gmaps" href="#" target="_blank"
+                        rel="noopener">
+                        <i class="fas fa-diamond-turn-right"></i> Directions
+                    </a>
+                    <button class="sl-btn sl-btn--ghost sl-btn--sm" id="sl-detail-center">
+                        <i class="fas fa-crosshairs"></i> Center
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SEARCH PANEL (right sidebar / bottom on mobile) ── -->
+        <aside class="sl-panel" id="sl-panel">
+            <!-- Brand header -->
+            <div class="sl-brand">
+                <div class="sl-brand-icon"><i class="fas fa-map-location-dot"></i></div>
+                <div>
+                    <h1 class="sl-brand-title">Smart Locator</h1>
+                    <p class="sl-brand-sub">AI-powered place search</p>
+                </div>
+            </div>
+
+            <!-- Search input -->
+            <div class="sl-search-wrap" id="sl-search-wrap">
+                <div class="sl-input-row">
+                    <i class="fas fa-magnifying-glass sl-input-icon"></i>
+                    <input type="text" class="sl-input" id="sl-input"
+                        placeholder="Find nearest stadium…"
+                        autocomplete="off" spellcheck="false">
+                    <button class="sl-search-btn" id="sl-search-btn" title="Search">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+                <!-- Autocomplete dropdown -->
+                <ul class="sl-autocomplete" id="sl-autocomplete" hidden></ul>
+            </div>
+
+            <!-- Category chips -->
+            <div class="sl-categories" id="sl-categories">
+                <button class="sl-chip" data-type="restaurant"><i class="fas fa-utensils"></i> Restaurant</button>
+                <button class="sl-chip" data-type="hospital"><i class="fas fa-hospital"></i> Hospital</button>
+                <button class="sl-chip" data-type="atm"><i class="fas fa-money-bill-wave"></i> ATM</button>
+                <button class="sl-chip" data-type="cafe"><i class="fas fa-mug-hot"></i> Café</button>
+                <button class="sl-chip" data-type="pharmacy"><i class="fas fa-pills"></i> Pharmacy</button>
+                <button class="sl-chip" data-type="fuel"><i class="fas fa-gas-pump"></i> Fuel</button>
+                <button class="sl-chip" data-type="stadium"><i class="fas fa-futbol"></i> Stadium</button>
+                <button class="sl-chip" data-type="hotel"><i class="fas fa-hotel"></i> Hotel</button>
+                <button class="sl-chip" data-type="mosque"><i class="fas fa-mosque"></i> Mosque</button>
+                <button class="sl-chip" data-type="school"><i class="fas fa-school"></i> School</button>
+                <button class="sl-chip" data-type="supermarket"><i class="fas fa-cart-shopping"></i> Shop</button>
+                <button class="sl-chip" data-type="parking"><i class="fas fa-square-parking"></i> Parking</button>
+                <button class="sl-chip" data-type="bank"><i class="fas fa-building-columns"></i> Bank</button>
+                <button class="sl-chip" data-type="park"><i class="fas fa-tree"></i> Park</button>
+                <button class="sl-chip" data-type="police"><i class="fas fa-shield-halved"></i> Police</button>
+                <button class="sl-chip" data-type="bus_station"><i class="fas fa-bus"></i> Bus Station</button>
+            </div>
+
+            <!-- Status / loading bar -->
+            <div class="sl-status" id="sl-status" hidden>
+                <div class="sl-status-bar"><span class="sl-status-progress" id="sl-status-progress"></span></div>
+                <p class="sl-status-text" id="sl-status-text">Searching…</p>
+            </div>
+
+            <!-- Results list -->
+            <div class="sl-results" id="sl-results" hidden>
+                <div class="sl-results-header">
+                    <h3 class="sl-results-title" id="sl-results-title">Results</h3>
+                    <button class="sl-results-clear" id="sl-results-clear" title="Clear results">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+                <ul class="sl-results-list" id="sl-results-list"></ul>
+            </div>
+
+            <!-- Empty state -->
+            <div class="sl-empty" id="sl-empty" hidden>
+                <i class="fas fa-map-pin sl-empty-icon"></i>
+                <p class="sl-empty-text" id="sl-empty-text">No results found nearby. Try a wider search or different category.</p>
+            </div>
+
+            <!-- Error state -->
+            <div class="sl-error" id="sl-error" hidden>
+                <i class="fas fa-triangle-exclamation sl-error-icon"></i>
+                <p class="sl-error-text" id="sl-error-text">Something went wrong.</p>
+                <button class="sl-btn sl-btn--sm" id="sl-error-retry"><i class="fas fa-rotate"></i> Retry</button>
+            </div>
+
+            <!-- Location-denied fallback inside panel -->
+            <div class="sl-geo-fallback" id="sl-geo-fallback" hidden>
+                <i class="fas fa-location-crosshairs sl-fallback-icon"></i>
+                <p class="sl-fallback-text">Location access denied. Enter a city or address to search nearby:</p>
+                <div class="sl-fallback-input-row">
+                    <input type="text" class="sl-input sl-fallback-input" id="sl-fallback-input"
+                        placeholder="e.g. Tashkent, Karshi…">
+                    <button class="sl-btn sl-btn--primary sl-btn--sm" id="sl-fallback-go">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Powered by -->
+            <div class="sl-footer">
+                <span>Powered by <strong>OpenStreetMap</strong> · <a href="index.html">Smart City</a></span>
+            </div>
+        </aside>
+
+    </div>
+    <!-- /sl-app -->
+
+    <!-- ═══════════ SCRIPTS ═══════════ -->
+    <!-- Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPcM=" crossorigin=""></script>
+
+    <!-- App logic -->
+    <script src="location.js"></script>
+
+    <!-- Theme + hamburger bootstrap (standalone, no dependency on theme.js chatbot code) -->
+    <script>
+        (function () {
+            const toggle = document.getElementById('theme-toggle');
+            const body = document.body;
+            const icon = toggle.querySelector('i');
+
+            const saved = localStorage.getItem('theme') || 'dark';
+            if (saved === 'light') {
+                body.classList.add('light-mode');
+                icon.classList.replace('fa-sun', 'fa-moon');
+            }
+            toggle.addEventListener('click', e => {
+                e.preventDefault();
+                const toLLight = !body.classList.contains('light-mode');
+                body.classList.toggle('light-mode', toLLight);
+                icon.classList.replace(toLLight ? 'fa-sun' : 'fa-moon', toLLight ? 'fa-moon' : 'fa-sun');
+                localStorage.setItem('theme', toLLight ? 'light' : 'dark');
+            });
+
+            // Mobile nav
+            document.getElementById('menu-open-button').addEventListener('click', () => document.getElementById('nav-menu').classList.add('open'));
+            document.getElementById('menu-close-button').addEventListener('click', () => document.getElementById('nav-menu').classList.remove('open'));
+        })();
+    </script>
+</body>
+
+</html>
